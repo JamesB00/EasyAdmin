@@ -2,11 +2,25 @@ import socket
 import time
 import os
 
-def determineDNS():
-    status = str(os.system('sudo systemctl status named')).split('\n')
+serviceDict = {
+    "dns": ["named", "bind"], 
+    "nft": ["nftables"],
+    "http": ["httpd", "apache2"],
+    "dhcp": ["dhcpd", "iso-dhcp"]
+    }
 
-    if(status[0].find('could not be found')):
-        return "Service not found on this host"
+timerVal = 0
+
+#Returns the status of specified service (for now just uses systemctl, will expand later)
+def determineServiceStatus(service):
+    found = False
+    for alias in serviceDict[service]:
+        status = str(os.system(("sudo systemctl status " + alias))).split('\n')
+        if not (status[0].find('could not be found')):
+            found = True
+
+    if found == False:
+        return None
 
     for line in status:
         temp = line.split(": ")
@@ -48,13 +62,21 @@ if __name__ =='__main__':
         
         print("Received: " + str(info))
         
-        dnsRes = ""
-        #Change this to determine function from request based on hashmap
-        if(info.decode('utf-8').split("|")[1] == "dns"):
-            dnsRes = determineDNS()
+        services = info.decode('utf-8').split("|")[1:]
+        
+        sendPacket = "System info:\n"
 
-        print("dnsRes = " + str(dnsRes))
+        #Get service statuses
+        for service in services:
+            if service == "":
+                continue
+            stat = determineServiceStatus(service)
+            if not stat:
+                sendPacket += service + " was not found on machine\n"
+                continue
+            sendPacket += service + " status: " + stat + "\n"
+
         #Send back information gathered on the system
-        conn.send(b"Info about system: DNS = "+bytes(str(dnsRes), 'utf-8')+b"\n")
+        conn.send(bytes(sendPacket, 'utf-8'))
         counter+=1
         

@@ -1,2 +1,2 @@
-test_host_local,127.0.0.1,3030,dns
+test_host_local,127.0.0.1,3030,dns,http
 test_fail_2,127.0.0.2,5050,none
